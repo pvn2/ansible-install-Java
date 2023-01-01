@@ -1,43 +1,16 @@
 - hosts: all
-  become: true
   tasks:
-  - name: Downloading Long Term Jenkins release
-    get_url:
-      url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
-      dest: /etc/yum.repos.d/jenkins.repo
-  - name: Import Jenkins key from url
-    rpm_key:
-      state: present
-      key: https://pkg.jenkins.io/redhat-stable/jenkins.io.key
-  - name: Install Java
-    yum:
-      name: java-11-openjdk-devel
-      state: present
-  - name: Install Epel Relaase which has daemonize  dependency which is required for Jenkins
-    yum:
-      name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-      state: present
-      disable_gpg_check: true
-  - name: Install Jenkins
-    yum:
-      name: jenkins
-      state: latest
-      skip_broken: yes
-  - name: Start jenkins
-    service:
-      name: jenkins
-      state: started
-  - name: enable jenkins
-    systemd:
-      name: jenkins
-      enabled: true
-  - name: sleep for 30 seconds and continue with play
-    wait_for:
-      delay: 30
-      port: 8080
-  - name: init password jenkins
-    shell: cat /var/lib/jenkins/secrets/initialAdminPassword
-    register: result
-  - name: print init password jenkins
+  - name: check java version
+    shell: java -version 2>&1| grep version|awk '{print $3}'|sed 's/"//g'
+    register: java_version
+    ignore_errors: True
+  - name: print java_version
     debug:
-      var: result.stdout
+      msg: "{{ java_version }}"
+  - name: Intall if java not installed
+    yum:
+      name: java-1.8.0-openjdk
+      state: present
+    when:
+    - ansible_facts['os_family'] == "RedHat"
+    - java_version.stdout == ""
